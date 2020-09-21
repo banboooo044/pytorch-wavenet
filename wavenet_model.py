@@ -124,9 +124,11 @@ class WaveNetModel(nn.Module):
 
     def wavenet(self, input, dilation_func):
 
+        print(input.size())
         x = self.start_conv(input)
         skip = 0
-
+        print("x size")
+        print(x.size())
         # WaveNet layers
         for i in range(self.blocks * self.layers):
 
@@ -142,19 +144,28 @@ class WaveNetModel(nn.Module):
             (dilation, init_dilation) = self.dilations[i]
 
             residual = dilation_func(x, dilation, init_dilation, i)
-
+            print("dilation size")
+            print(residual.size())
             # dilated convolution
             filter = self.filter_convs[i](residual)
             filter = F.tanh(filter)
+            print("filter size")
+            print(filter.size())
             gate = self.gate_convs[i](residual)
             gate = F.sigmoid(gate)
+            print("gate size")
+            print(gate.size())
             x = filter * gate
 
             # parametrized skip connection
             s = x
             if x.size(2) != 1:
-                 s = dilate(x, 1, init_dilation=dilation)
+                s = dilate(x, 1, init_dilation=dilation)
+            print("s size")
+            print(s.size())
             s = self.skip_convs[i](s)
+            print("s size")
+            print(s.size())
             try:
                 skip = skip[:, :, -s.size(2):]
             except:
@@ -162,11 +173,19 @@ class WaveNetModel(nn.Module):
             skip = s + skip
 
             x = self.residual_convs[i](x)
+            print("after residual x size")
+            print(x.size())
             x = x + residual[:, :, (self.kernel_size - 1):]
 
         x = F.relu(skip)
+        print("before end_conv1")
+        print(x.size())
         x = F.relu(self.end_conv_1(x))
+        print("after end_conv1")
+        print(x.size())
         x = self.end_conv_2(x)
+        print("after end_cov2")
+        print(x.size())
 
         return x
 
@@ -193,6 +212,8 @@ class WaveNetModel(nn.Module):
         x = x[:, :, -l:]
         x = x.transpose(1, 2).contiguous()
         x = x.view(n * l, c)
+        print("forward last x size")
+        print(x.size())
         return x
 
     def generate(self,
