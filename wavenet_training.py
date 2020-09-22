@@ -66,6 +66,8 @@ class WavenetTrainer:
                 target = Variable(target.view(-1).type(self.ltype))
 
                 output = self.model(x)
+                print(f"output size {output.size()}")
+                print(f"target size {target.size()}")
                 loss = F.cross_entropy(output.squeeze(), target.squeeze())
                 self.optimizer.zero_grad()
                 loss.backward()
