@@ -85,8 +85,7 @@ class ConstantPad1d(Function):
         self.value = value
         self.pad_start = pad_start
 
-    @staticmethod
-    def forward(ctx, input):
+    def forward(self, input):
         self.num_pad = self.target_size - input.size(self.dimension)
         assert self.num_pad >= 0, 'target size has to be greater than input size'
 
@@ -106,8 +105,7 @@ class ConstantPad1d(Function):
         c_output.copy_(input)
         return output
 
-    @staticmethod
-    def backward(ctx, grad_output):
+    def backward(self, grad_output):
         grad_input = grad_output.new(*self.input_size).zero_()
         cg_output = grad_output
 
@@ -126,4 +124,5 @@ def constant_pad_1d(input,
                     dimension=0,
                     value=0,
                     pad_start=False):
-    return ConstantPad1d(target_size, dimension, value, pad_start).apply(input)
+    func = ConstantPad1d(target_size, dimension, value, pad_start)
+    return func.apply(input)
