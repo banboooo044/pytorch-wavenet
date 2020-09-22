@@ -97,21 +97,25 @@ class ConstantPad1dFunc(Function):
             c_output = c_output.narrow(dimension, 0, c_output.size(dimension) - num_pad)
 
         c_output.copy_(input)
-        ctx.save_for_backward(input_size, dimension, num_pad, pad_start)
+
+        ctx.input_size = input_size
+        ctx.dimension = dimension
+        ctx.num_pad = num_pad
+        ctx.pad_start = pad_start
+
         return output
+
 
     @staticmethod
     def backward(ctx, grad_output):
-        input_size, dimension, num_pad, pad_start = ctx.saved_tensors
-        input_size = torch.Size(input_size)
-        grad_input = grad_output.new(*input_size).zero_()
+        grad_input = grad_output.new(*ctx.input_size).zero_()
         cg_output = grad_output
 
         # crop grad_output
-        if pad_start:
-            cg_output = cg_output.narrow(dimension, num_pad, cg_output.size(dimension) - num_pad)
+        if ctx.pad_start:
+            cg_output = cg_output.narrow(ctx.dimension, ctx.num_pad, cg_output.size(ctx.dimension) - ctx.num_pad)
         else:
-            cg_output = cg_output.narrow(dimension, 0, cg_output.size(dimension) - num_pad)
+            cg_output = cg_output.narrow(ctx.dimension, 0, cg_output.size(ctx.dimension) - ctx.num_pad)
 
         grad_input.copy_(cg_output)
         return grad_input
