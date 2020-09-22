@@ -77,7 +77,45 @@ class DilatedQueue:
         self.out_pos = 0
 
 
-class ConstantPad1d(Function):
+class ConstantPad1dFunc(Function):
+    @staticmethod
+    def forward(ctx, input, target_size, dimension, value, pad_start):
+        num_pad = target_size - input.size(dimension)
+        assert num_pad >= 0, 'target size has to be greater than input size'
+
+        input_size = input.size()
+
+        size = list(input.size())
+        size[self.dimension] = target_size
+        output = input.new(*tuple(size)).fill_(value)
+        c_output = output
+
+        # crop output
+        if pad_start:
+            c_output = c_output.narrow(dimension, num_pad, c_output.size(dimension) - num_pad)
+        else:
+            c_output = c_output.narrow(dimension, 0, c_output.size(dimension) - num_pad)
+
+        c_output.copy_(input)
+        ctx.save_for_backward(input_size, dimension, num_pad, pad_start)
+        return output
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        input_size, dimension, num_pad, pad_start = ctx.saved_tensors
+        grad_input = grad_output.new(*input_size).zero_()
+        cg_output = grad_output
+
+        # crop grad_output
+        if pad_start:
+            cg_output = cg_output.narrow(dimension, num_pad, cg_output.size(dimension) - num_pad)
+        else:
+            cg_output = cg_output.narrow(dimension, 0, cg_output.size(dimension) - num_pad)
+
+        grad_input.copy_(cg_output)
+        return grad_input
+
+class ConstantPad1d(nn.Module):
     def __init__(self, target_size, dimension=0, value=0, pad_start=False):
         super(ConstantPad1d, self).__init__()
         self.target_size = target_size
@@ -86,38 +124,7 @@ class ConstantPad1d(Function):
         self.pad_start = pad_start
 
     def forward(self, input):
-        self.num_pad = self.target_size - input.size(self.dimension)
-        assert self.num_pad >= 0, 'target size has to be greater than input size'
-
-        self.input_size = input.size()
-
-        size = list(input.size())
-        size[self.dimension] = self.target_size
-        output = input.new(*tuple(size)).fill_(self.value)
-        c_output = output
-
-        # crop output
-        if self.pad_start:
-            c_output = c_output.narrow(self.dimension, self.num_pad, c_output.size(self.dimension) - self.num_pad)
-        else:
-            c_output = c_output.narrow(self.dimension, 0, c_output.size(self.dimension) - self.num_pad)
-
-        c_output.copy_(input)
-        return output
-
-    def backward(self, grad_output):
-        grad_input = grad_output.new(*self.input_size).zero_()
-        cg_output = grad_output
-
-        # crop grad_output
-        if self.pad_start:
-            cg_output = cg_output.narrow(self.dimension, self.num_pad, cg_output.size(self.dimension) - self.num_pad)
-        else:
-            cg_output = cg_output.narrow(self.dimension, 0, cg_output.size(self.dimension) - self.num_pad)
-
-        grad_input.copy_(cg_output)
-        return grad_input
-
+        return ConstantPad1dFunc.apply(input, self.target_size, self.dimension, self.value, self.pad_start)
 
 def constant_pad_1d(input,
                     target_size,
@@ -125,4 +132,4 @@ def constant_pad_1d(input,
                     value=0,
                     pad_start=False):
     func = ConstantPad1d(target_size, dimension, value, pad_start)
-    return func.apply(input)
+    return func(input)
