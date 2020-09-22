@@ -203,8 +203,7 @@ class WaveNetModel(nn.Module):
         return x
 
     def forward(self, input):
-        x = self.wavenet(input,
-                         dilation_func=self.wavenet_dilate)
+        x = self.wavenet(input, dilation_func=self.wavenet_dilate)
 
         # reshape output
         [n, c, l] = x.size()
@@ -234,8 +233,7 @@ class WaveNetModel(nn.Module):
             input = Variable(torch.FloatTensor(1, self.classes, self.receptive_field).zero_())
             input = input.scatter_(1, generated[-self.receptive_field:].view(1, -1, self.receptive_field), 1.)
 
-            x = self.wavenet(input,
-                             dilation_func=self.wavenet_dilate)[:, :, -1].squeeze()
+            x = self.wavenet(input, dilation_func=self.wavenet_dilate)[:, :, -1].squeeze()
 
             if temperature > 0:
                 x /= temperature
