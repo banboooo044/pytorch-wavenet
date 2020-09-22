@@ -86,7 +86,7 @@ class ConstantPad1dFunc(Function):
         input_size = input.size()
 
         size = list(input.size())
-        size[self.dimension] = target_size
+        size[dimension] = target_size
         output = input.new(*tuple(size)).fill_(value)
         c_output = output
 
