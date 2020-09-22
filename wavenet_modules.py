@@ -118,7 +118,7 @@ class ConstantPad1dFunc(Function):
             cg_output = cg_output.narrow(ctx.dimension, 0, cg_output.size(ctx.dimension) - ctx.num_pad)
 
         grad_input.copy_(cg_output)
-        return grad_input, None
+        return grad_input, None, None, None, None
 
 class ConstantPad1d(nn.Module):
     def __init__(self, target_size, dimension=0, value=0, pad_start=False):
