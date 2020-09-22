@@ -83,7 +83,7 @@ class ConstantPad1dFunc(Function):
         num_pad = target_size - input.size(dimension)
         assert num_pad >= 0, 'target size has to be greater than input size'
 
-        input_size = input.size()
+        input_size = torch.tensor(input.size())
 
         size = list(input.size())
         size[dimension] = target_size
@@ -103,6 +103,7 @@ class ConstantPad1dFunc(Function):
     @staticmethod
     def backward(ctx, grad_output):
         input_size, dimension, num_pad, pad_start = ctx.saved_tensors
+        input_size = torch.Size(input_size)
         grad_input = grad_output.new(*input_size).zero_()
         cg_output = grad_output
 
